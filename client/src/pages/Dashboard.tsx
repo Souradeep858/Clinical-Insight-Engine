@@ -148,7 +148,7 @@ export default function Dashboard() {
                   <Activity className="w-5 h-5 text-primary" /> Vitals & History
                 </h3>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-foreground">BMI (kg/m²)</label>
                     <input 
