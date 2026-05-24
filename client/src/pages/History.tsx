@@ -1,6 +1,6 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useAssessments } from "@/hooks/use-assessments";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { Loader2, Search, Calendar, User, Activity } from "lucide-react";
 import { useState } from "react";
 
@@ -29,6 +29,12 @@ export default function History() {
       String(a.bloodGlucoseLevel).includes(term)
     );
   }) || [];
+
+  const formatAssessmentDate = (dateVal: any) => {
+    if (!dateVal) return "Unknown";
+    const dateObj = new Date(dateVal);
+    return isValid(dateObj) ? format(dateObj, 'MMM d, yyyy') : "Unknown";
+  };
 
   return (
     <AppLayout>
@@ -96,7 +102,7 @@ export default function History() {
                   {filteredAssessments.map((assessment) => (
                     <tr key={assessment.id} className="hover:bg-muted/30 transition-colors text-sm">
                       <td className="p-4 whitespace-nowrap">
-                        {assessment.createdAt ? format(new Date(assessment.createdAt), 'MMM d, yyyy') : 'Unknown'}
+                        {formatAssessmentDate(assessment.createdAt)}
                       </td>
                       <td className="p-4">{assessment.age}</td>
                       <td className="p-4 font-medium">{assessment.bmi}</td>
