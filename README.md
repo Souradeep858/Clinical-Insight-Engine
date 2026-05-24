@@ -205,12 +205,7 @@ Create the required tables:
 npm run db:push
 ```
 
-If the above doesn't work, try:
-```bash
-npm run migrate
-# or
-npm run db:migrate
-```
+
 
 The server runs a PostgreSQL preflight check before mounting routes. If startup
 prints `Database startup check failed`, confirm that PostgreSQL is running,
@@ -289,10 +284,10 @@ py analyze.py
 #### Backend API (if separate)
 ```bash
 # Linux/macOS
-python3 main.py
+npm run dev
 
 # Windows
-py main.py
+npm run dev
 ```
 
 ---
