@@ -180,9 +180,12 @@ app.use((req, res, next) => {
 
   // Register auth routes BEFORE API routes so session is available
   app.use("/api/auth", createAuthRouter());
-
-  // Fail fast on startup if JWT_SECRET is misconfigured (in production)
-  getJwtSecret();
+  // Warm up ML model at startup so first prediction request is fast
+  log("Warming up ML model at startup...", "ml");
+  execFileAsync(getPythonExecutable(), ["analyze.py", "train"])
+    .then(() => log("ML model ready.", "ml"))
+    .catch((err: any) => log(`ML warmup warning: ${err.message}`, "ml"));
+  await registerRoutes(httpServer, app);
 
   // Register protected patient endpoints
   app.use("/api/patients", patientsRouter);

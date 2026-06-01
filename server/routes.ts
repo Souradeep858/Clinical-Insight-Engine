@@ -54,23 +54,7 @@ const assessmentLimiter = rateLimit({
   },
 });
 
-/**
- * Separate, more permissive rate limiter for the preview endpoint.
- * Preview is triggered automatically during form filling and should not
- * block normal user interaction. Allows 15 requests per minute.
- */
-const previewLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  limit: 15, // 15 requests per IP per window
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: {
-    error: "Too many preview requests. Please wait a moment.",
-    retryAfter: 60,
-  },
-});
-
-function getPythonExecutable() {
+export function getPythonExecutable() {
   const candidates = process.platform === "win32"
     ? [
         path.resolve(".venv", "Scripts", "python.exe"),
@@ -914,5 +898,17 @@ export async function registerRoutes(
     }
   );
 
+        res.setHeader("Content-Type", "text/csv");
+        res.setHeader(
+          "Content-Disposition",
+          "attachment; filename=assessments.csv"
+        );
+        return res.send(csv);
+      } catch (err) {
+        console.error("CSV export error:", err);
+        return res.status(500).json({ message: "Failed to export CSV." });
+      }
+    }
+  );
   return httpServer;
 }
