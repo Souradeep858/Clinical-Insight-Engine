@@ -65,7 +65,7 @@ export class DatabaseStorage implements IStorage {
   ): Promise<{ data: Assessment[]; nextCursor: number | null }> {
     const db = getDb();
 
-    const conditions: ReturnType<typeof eq>[] = [];
+    const filters: ReturnType<typeof eq>[] = [];
 
     if (createdBy) {
       conditions.push(eq(assessments.createdBy, createdBy));
