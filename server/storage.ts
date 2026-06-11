@@ -57,6 +57,8 @@ export interface IStorage {
   updateUser(id: string, data: Partial<Pick<User, "isActive" | "role">>): Promise<User>;
   getSystemStats(): Promise<{ totalUsers: number; totalAssessments: number; riskDistribution: { category: string; count: number }[]; }>;
   recordLoginAudit(params: { userId?: string; ipAddress?: string; userAgent?: string; loginStatus: string; }): Promise<void>;
+  recordPatientAccess(params: { userId: string; resourceType: string; resourceId?: string; action: string; ipAddress?: string; userAgent?: string; granted: boolean; }): Promise<void>;
+  getPatientAccessAuditLogs(page: number, limit: number): Promise<{ data: typeof patientAccessAuditLogs.$inferSelect[]; total: number }>;
   getAnalyticsStats(createdBy?: string): Promise<any>;
   getModelVersions(): Promise<ModelVersion[]>;
   getLatestModelVersion(): Promise<ModelVersion | undefined>;
@@ -141,8 +143,16 @@ export class DatabaseStorage implements IStorage {
     return this.patientUserRepository.create(data);
   }
 
-  async getAssessmentsByPatientName(patientName: string, limit?: number, offset?: number) {
-    return this.assessmentRepository.getAssessmentsByPatientName(patientName, limit, offset);
+  async recordPatientAccess(params: { userId: string; resourceType: string; resourceId?: string; action: string; ipAddress?: string; userAgent?: string; granted: boolean; }) {
+    return this.auditRepository.recordPatientAccess(params);
+  }
+
+  async getPatientAccessAuditLogs(page: number, limit: number) {
+    return this.auditRepository.getPatientAccessAuditLogs(page, limit);
+  }
+
+  async getSystemStats() { 
+    return this.analyticsRepository.getSystemStats(); 
   }
 
   async getPatientTrends(patientName: string) {

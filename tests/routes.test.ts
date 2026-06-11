@@ -781,3 +781,4 @@ describe("Route uniqueness (no duplicate registrations)", () => {
     expect(duplicates, `Duplicate assessment routes: ${duplicates.join(", ")}`).toEqual([]);
   });
 });
+

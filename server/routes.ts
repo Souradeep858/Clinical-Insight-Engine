@@ -10,42 +10,64 @@ import assessmentsRouter from "./routes/assessments.routes";
 import { MLService, generateRequestFingerprint, calculateClinicalFallback, getPythonExecutable } from "./services/mlService";
 import { storage, type AssessmentCreateInput } from "./storage";
 import { requireAuth, requireAdmin, requireVerified } from "./auth";
+import bcrypt from "bcrypt";
 import { logger } from "./logger";
-import {
-  generalLimiter,
-  adminLimiter,
-} from "./middleware/rateLimit";
-import { rateLimit } from "express-rate-limit";
-import { MLService, generateRequestFingerprint, calculateClinicalFallback } from "./services/mlService";
-import { getAssessmentQueue, getPythonExecutable } from "./queue";
 import { execFile } from "child_process";
+import { promisify } from "util";
+import { z } from "zod";
+import { rateLimit } from "express-rate-limit";
+import path from "path";
+import os from "os";
+import { randomUUID } from "crypto";
+import { writeFile, unlink } from "fs/promises";
+import { fileURLToPath } from "url";
 import { api } from "@shared/routes";
+import { getPythonExecutable, calculateClinicalFallback, generateRequestFingerprint, MLService } from "./services/mlService";
+import { validateDTO } from "./middleware/validateDTO";
+import { getAssessmentQueue } from "./queue";
 import { assessmentsToCsv } from "./utils/csvExport";
 import { searchQuerySchema } from "./validation/searchValidation";
 import { analyzeSearchInput, logSecurityEvent, sanitizeDatabaseError } from "./security/sqlProtection";
 import { canAccessPatientRecord } from "./services/authz/patient-access";
 import { logAccessAttempt } from "./security/access-audit";
-import path from "path";
-import { fileURLToPath } from "url";
-import bcrypt from "bcrypt";
-import { validateDTO } from "./middleware/validateDTO";
-import { z } from "zod";
-import os from "os";
-import { randomUUID } from "crypto";
-import { writeFile, unlink } from "fs/promises";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const analyzePyPath = path.resolve(__dirname, "..", "analyze.py");
-
-function execFileAsync(file: string, args: string[], options: any): Promise<{ stdout: string; stderr: string }> {
+function execFileAsync(file: string, args: string[], options: { timeout: number; maxBuffer?: number }): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    safeExecFile(file, args, options, (err, stdout, stderr) => {
-      if (err) reject(err);
-      else resolve({ stdout: stdout as unknown as string, stderr: stderr as unknown as string });
+    execFile(file, args, options, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve({ stdout, stderr });
+      }
     });
   });
 }
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const analyzePyPath = path.resolve(__dirname, "..", "analyze.py");
+const assessmentQueue = getAssessmentQueue();
+
+const previewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Too many preview requests. Please try again later.",
+    retryAfter: 60,
+  },
+});
+
+const assessmentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: "Too many assessment requests. Please try again later.",
+    retryAfter: 60,
+  },
+});
 
 async function seedDatabase() {
   const adminEmail = process.env.ADMIN_EMAIL;

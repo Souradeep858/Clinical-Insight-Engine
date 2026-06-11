@@ -511,6 +511,37 @@ export default function History() {
     setCurrentPage(1);
   }, [searchTerm, riskCategory, gender, minAge, maxAge, startDate, endDate, sortBy]);
 
+  const sortedAssessments = assessments;
+  const latestBadgeAssessment = useMemo(() => {
+    if (sortedAssessments.length === 0) return null;
+    return (
+      sortedAssessments.find((assessment) =>
+        calculateHealthBadges(assessment, sortedAssessments).length > 0
+      ) || sortedAssessments[0]
+    );
+  }, [sortedAssessments]);
+
+  const latestBadges = useMemo(() => {
+    if (!latestBadgeAssessment) return [];
+    return calculateHealthBadges(latestBadgeAssessment, sortedAssessments);
+  }, [latestBadgeAssessment, sortedAssessments]);
+
+  const selectedPatientBadges = useMemo(() => {
+    const sortedHistory = [...selectedPatientHistory].sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime()
+    );
+
+    if (sortedHistory.length === 0) return [];
+    return calculateHealthBadges(sortedHistory[0], sortedHistory);
+  }, [selectedPatientHistory]);
+
+  // 4. Pagination
+  const totalRecords = assessments.length;
+  const filteredRecords = sortedAssessments.length;
+  const paginatedAssessments = sortedAssessments;
+
   const formatAssessmentDate = (dateVal: any) => {
     if (!dateVal) return "Unknown";
     const dateObj = new Date(dateVal);
@@ -1085,7 +1116,7 @@ export default function History() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-{sortedSelectedPatientHistory.map((a) => (
+                    {selectedPatientHistory.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()).map((a) => (
                       <tr key={a.id} className="hover:bg-muted/30 transition-colors">
                         <td className="p-3 whitespace-nowrap">{formatAssessmentDate(a.createdAt)}</td>
                         <td className="p-3 font-bold text-foreground">{Number(a.riskScore).toFixed(1)}%</td>
