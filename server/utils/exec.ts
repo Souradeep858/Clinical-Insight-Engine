@@ -49,7 +49,8 @@ export function safeExecML(
   options?: any
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    safeExecFile(file, args, options, (err, stdout, stderr) => {
+    const execOptions = { maxBuffer: 1024 * 1024 * 10, ...options };
+    safeExecFile(file, args, execOptions, (err, stdout, stderr) => {
       if (err) {
         reject(err);
       } else {

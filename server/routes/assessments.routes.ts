@@ -304,25 +304,24 @@ assessmentsRouter.get("/jobs/:id", requireAuth, requireVerified, async (req, res
   try {
     const queue = getAssessmentQueue();
     if (!queue) {
-      return res.status(503).json({
-        message: "Assessment queue is temporarily unavailable.",
-      });
+      return res.json({ status: "failed", error: "Assessment queue is temporarily unavailable." });
     }
 
     const job = await queue.getJob(req.params.id as string);
     if (!job) {
-      return res.status(404).json({ message: "Job not found" });
+      return res.json({ status: "failed", error: "Job not found" });
     }
     const state = await job.getState();
     if (state === "completed") {
       return res.json({ status: "completed", result: job.returnvalue });
     } else if (state === "failed") {
-      return res.status(500).json({ status: "failed", error: job.failedReason });
+      return res.json({ status: "failed", error: job.failedReason || "Unknown failure" });
     } else {
       return res.json({ status: state });
     }
   } catch (err) {
-    return res.status(500).json({ message: "Error fetching job status" });
+    logger.error({ err }, "Error fetching job status");
+    return res.json({ status: "failed", error: "Error fetching job status" });
   }
 });
 
